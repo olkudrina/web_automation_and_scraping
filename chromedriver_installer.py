@@ -1,10 +1,12 @@
 import os
+from zipfile import ZipFile
 import requests
 from bs4 import BeautifulSoup
-from zipfile import ZipFile
+from selenium import webdriver
 
 
 class ChromeInstall():
+    """Installing the compatible Chrome webdriver"""
     def __init__(self):
         self.chrome_version = self.get_current_chrome_version()
 
@@ -45,8 +47,6 @@ class ChromeInstall():
                 os.rename('./'+ver+'/chromedriver-win64/chromedriver.exe', './chromedriver.exe')
             except PermissionError:
                 print('Impossible to replace the file in cwd')
-        
-        return None
 
     def old_version_extract(self):
         """
@@ -65,22 +65,20 @@ class ChromeInstall():
         # define the latest release for the older version
         link_storage = 'https://chromedriver.storage.googleapis.com'
         link_release = link_storage+'/LATEST_RELEASE_'+ver
-        latest_release = requests.get(link_release).text
+        latest_release = requests.get(link_release, timeout=30).text
 
         link_driver_32 = os.path.join(link_storage, latest_release, 'chromedriver_win32.zip')
         link_driver_64 = os.path.join(link_storage, latest_release, 'chromedriver_win64.zip')
-        
+
         if requests.get(link_driver_64).status_code == 404:
-            driver_file = requests.get(link_driver_32, stream=True)
+            driver_file = requests.get(link_driver_32, stream=True, timeout=60)
         else:
-            driver_file = requests.get(link_driver_64, stream=True)
-        
-        with open('chromedriver.zip', "wb") as f:
+            driver_file = requests.get(link_driver_64, stream=True, timeout=60)
+
+        with open('chromedriver.zip', "wb") as arch:
             for chunk in driver_file.iter_content(chunk_size=512):
                 if chunk:
-                    f.write(chunk)
-
-        return None
+                    arch.write(chunk)
 
     def new_version_extract(self):
         """
@@ -91,19 +89,19 @@ class ChromeInstall():
         """
         ver = self.chrome_version[:4]
         # get all accessibility data for the latest stable releases
-        stable_drivers = requests.get('https://googlechromelabs.github.io/chrome-for-testing/#stable')
+        stable_table_link = 'https://googlechromelabs.github.io/chrome-for-testing/#stable'
+        stable_drivers = requests.get(stable_table_link)
         soup = BeautifulSoup(stable_drivers.text, 'html.parser')
         stable_elements = [el.text for el in soup.find_all('code')]
         # define the download link for the latest stable driver for current chrome version
         stable_driver = [i for i in stable_elements if ver in i and 'chromedriver-win64' in i][0]
 
-        stable_driver_file = requests.get(stable_driver, stream=True)
+        stable_driver_file = requests.get(stable_driver, stream=True, timeout=60)
 
-        with open('chromedriver.zip', "wb") as f:
+        with open('chromedriver.zip', "wb") as arch:
             for chunk in stable_driver_file.iter_content(chunk_size=512):
                 if chunk:
-                    f.write(chunk)
-        return None
+                    arch.write(chunk)
 
     def get_driver(self):
         """
@@ -118,7 +116,11 @@ class ChromeInstall():
             self.new_version_extract()
 
         self.unzip_and_move('chromedriver.zip')
-        return None
 
 if __name__ == '__main__':
-    ChromeInstall().get_driver()
+    try:
+        options = webdriver.ChromeOptions()
+        browser = webdriver.Chrome(options=options)
+        browser.close()
+    except:
+        ChromeInstall().get_driver()

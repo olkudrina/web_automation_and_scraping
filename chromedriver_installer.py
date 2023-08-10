@@ -18,14 +18,10 @@ class ChromeInstall():
         """
         stream = os.popen('reg query "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Google Chrome"')
         output = stream.read()
+        output = output.split('\n')
 
-        chrome_version = ''
-        for letter in output[output.rindex('DisplayVersion    REG_SZ') + 24:]:
-            if letter != '\n':
-                chrome_version += letter
-            else:
-                break
-        chrome_version = chrome_version.strip()
+        chrome_version = [i for i in output if 'DisplayVersion' in i and 'REG_SZ' in i][0]
+        chrome_version = chrome_version.strip().split(' ')[-1]
 
         return chrome_version
 

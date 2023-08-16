@@ -81,16 +81,42 @@ class ChromeInstall():
         According to google guidelines, new versions, starting from 115. are
         accessible through the accessibility tables:
         https://chromedriver.chromium.org/downloads/version-selection
+        https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/115.0.5762.4/mac-x64/chromedriver-mac-x64.zip
+
         :return: None
         """
-        ver = self.chrome_version[:4]
+        ver = self.chrome_version
+        all_versions = requests.get('https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json').json()['versions']
+        comp_versions = [i for i in all_versions if i['version'][:10] == ver[:10]]
+        link = [i['url'] for i in comp_versions[-1]['downloads']['chromedriver']
+                if i['platform'] == 'win64'][0]
+        driver_file = requests.get(link, stream=True, timeout=60)
+
+        with open('chromedriver.zip', "wb") as arch:
+            for chunk in driver_file.iter_content(chunk_size=512):
+                if chunk:
+                    arch.write(chunk)
+
+    def stable_version_extract(self):
+        """
+        According to google guidelines, new versions, starting from 115. are
+        accessible through the accessibility tables:
+        https://chromedriver.chromium.org/downloads/version-selection
+        https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/115.0.5762.4/mac-x64/chromedriver-mac-x64.zip
+
+        This function will download the latest stable version of the driver
+        :return: None
+        """
+        # ver = self.chrome_version[:4]
         # get all accessibility data for the latest stable releases
         stable_table_link = 'https://googlechromelabs.github.io/chrome-for-testing/#stable'
         stable_drivers = requests.get(stable_table_link)
         soup = BeautifulSoup(stable_drivers.text, 'html.parser')
         stable_elements = [el.text for el in soup.find_all('code')]
         # define the download link for the latest stable driver for current chrome version
-        stable_driver = [i for i in stable_elements if ver in i and 'chromedriver-win64' in i][0]
+        stable_driver = [i for i in stable_elements if ver in i
+                        and 'chromedriver' in i
+                        and 'win64' in i][0]
 
         stable_driver_file = requests.get(stable_driver, stream=True, timeout=60)
 

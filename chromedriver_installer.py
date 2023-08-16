@@ -113,6 +113,20 @@ class ChromeInstall():
 
         self.unzip_and_move('chromedriver.zip')
 
+    def check_driver(self):
+        """
+        Function to check whether there is already a compatible driver installed.
+        If not - the driver is downloaded to cwd
+        
+        :return: None
+        """
+        try:
+            options = webdriver.ChromeOptions()
+            browser = webdriver.Chrome(options=options)
+            browser.close()
+        except:
+            self.get_driver()
+
 if __name__ == '__main__':
     try:
         options = webdriver.ChromeOptions()
